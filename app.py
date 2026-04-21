@@ -38,7 +38,7 @@ def generate_map(location_data):
             "lat": lat, 
             "lon": lon, 
             "Фото": count, 
-            "size": min(10 + (count * 2.0), 40)
+            "size": min(4 + (count * 1.0), 20)
         })
     df = pd.DataFrame(data)
 
@@ -52,7 +52,7 @@ def generate_map(location_data):
         center={"lat": avg_lat, "lon": avg_lon},
         zoom=3,
         color_continuous_scale=custom_colors,
-        size_max=35
+        size_max=15
     )
 
     df_black_text = df[df["Фото"] < (max_count * 0.4)]
@@ -112,7 +112,7 @@ def index():
                 data["stats_countries"], data["stats_cities"] = get_statistics(locs)
                 data["device_stats"] = devs
                 d_map = {0: "Пн", 1: "Вт", 2: "Ср", 3: "Чт", 4: "Пт", 5: "Сб", 6: "Вс"}
-                data["habit_days"] = {d_map[d]: c for d, c in sorted(d_stats.items(), key=lambda x: x[1], reverse=True)}
+                data["habit_days"] = {d_map[d]: c for d, c in sorted(d_stats.items(), key=lambda x: x[0])}
                 t_groups = {"Утро (06-12)": 0, "День (12-18)": 0, "Вечер (18-00)": 0, "Ночь (00-06)": 0}
                 for h, c in h_stats.items():
                     if 6 <= h < 12: t_groups["Утро (06-12)"] += c

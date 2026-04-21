@@ -53,6 +53,21 @@
             height: 100%; 
             border: none; 
         }
+        .sortable { 
+            cursor: pointer; 
+            user-select: none; 
+        }
+        .sortable:hover { 
+            background-color: #e9ecef !important; 
+        }
+        .active-sort-col { 
+            background-color: rgba(0, 0, 0, 0.03) !important; 
+        }
+        .sort-icon { 
+            font-size: 0.8em; 
+            margin-left: 5px; 
+            color: #6c757d; 
+        }
         .stats-table-wrapper { 
             max-height: 400px; 
             overflow-y: auto; 
@@ -211,13 +226,13 @@
     <div class="card">
         <div class="card-header">Хронология устройств</div>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" id="device-table">
                 <thead class="table-light">
                     <tr>
                         <th class="ps-4">Модель</th>
-                        <th>Первое фото</th>
-                        <th>Последнее фото</th>
-                        <th class="pe-4">Сумма фото</th>
+                        <th class="sortable" data-col="1" data-type="string">Первое фото <span class="sort-icon"></span></th>
+                        <th class="sortable" data-col="2" data-type="string">Последнее фото <span class="sort-icon"></span></th>
+                        <th class="sortable pe-4" data-col="3" data-type="number">Сумма фото <span class="sort-icon"></span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -243,5 +258,37 @@
     };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+        const comparer = (idx, asc, type) => (a, b) => {
+            const v1 = getCellValue(asc ? a : b, idx);
+            const v2 = getCellValue(asc ? b : a, idx);
+            if (type === 'number') return parseFloat(v1) - parseFloat(v2);
+            return v1.toString().localeCompare(v2);
+        };
+        document.querySelectorAll('#device-table th.sortable').forEach(th => {
+            th.addEventListener('click', function() {
+                const table = th.closest('table');
+                const tbody = table.querySelector('tbody');
+                const colIdx = parseInt(th.dataset.col);
+                const colType = th.dataset.type;
+                let asc = this.dataset.asc === 'true';
+                asc = !asc;
+                this.dataset.asc = asc;
+                table.querySelectorAll('th.sortable span.sort-icon').forEach(span => span.innerHTML = '');
+                table.querySelectorAll('td, th').forEach(cell => cell.classList.remove('active-sort-col'));
+                this.querySelector('span.sort-icon').innerHTML = asc ? '&#9650;' : '&#9660;';
+                Array.from(tbody.querySelectorAll('tr'))
+                    .sort(comparer(colIdx, asc, colType))
+                    .forEach(tr => {
+                        tbody.appendChild(tr);
+                        tr.children[colIdx].classList.add('active-sort-col'); 
+                    });
+                this.classList.add('active-sort-col'); 
+            });
+        });
+    });
+</script>
 </body>
 </html>

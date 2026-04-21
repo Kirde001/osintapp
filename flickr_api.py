@@ -47,7 +47,8 @@ class FlickrOSINT:
                 for tag in res["photo"]["exif"]:
                     if tag["tag"] == "Make": cam["make"] = tag["raw"]["_content"]
                     if tag["tag"] == "Model": cam["model"] = tag["raw"]["_content"]
-                return f"{cam['make']} {cam['model']}".strip()
+                result = f"{cam['make']} {cam['model']}".strip()
+                return "Неизвестное устройство - нет метаданных" if result == "Unknown Unknown" else result
         except:
             pass
         return "Unknown Device"
