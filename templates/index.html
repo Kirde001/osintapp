@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АЦДС | Анализ Flickr</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f8f9fa; 
+            font-family: 'Inter', sans-serif;
+            color: #212529;
+        }
+        h2 {
+            font-weight: 700;
+            color: #212529;
+            letter-spacing: -0.5px;
+        }
+        .card { 
+            border: none; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important; 
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        .card-header { 
+            background-color: #212529; 
+            color: #ffffff; 
+            font-weight: 600; 
+            padding: 1rem 1.25rem;
+            border-bottom: none;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .form-control {
+            border-radius: 6px;
+            border-color: #ced4da;
+        }
+        .form-control:focus {
+            border-color: #212529;
+            box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25);
+        }
+        .map-container { 
+            width: 100%; 
+            height: 600px; 
+            background-color: #fff; 
+        }
+        .map-container iframe { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+        }
+        .stats-table-wrapper { 
+            max-height: 400px; 
+            overflow-y: auto; 
+        }
+        .list-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid #f1f3f5;
+            transition: background-color 0.2s;
+        }
+        .list-row:hover {
+            background-color: #f8f9fa;
+        }
+        .list-row:last-child {
+            border-bottom: none;
+        }
+        #loading-overlay { display: none; }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+    <h2 class="mb-5 text-center">Анализ цифрового следа Flickr на основе метаданных</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show shadow-sm rounded-3">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-body p-4">
+            <form method="POST" action="/" id="osint-form">
+                <div class="mb-4">
+                    <label class="form-label">Ссылка на профиль в Flickr:</label>
+                    <input type="url" class="form-control form-control-lg" name="target_url" value="{{ target_url }}" placeholder="https://www.flickr.com/photos/username/" required>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <label class="form-label">От:</label>
+                        <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+                    </div>
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <label class="form-label">До:</label>
+                        <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Лимит фото (пусто = все):</label>
+                        <input type="number" class="form-control" name="max_photos" value="{{ max_photos }}">
+                    </div>
+                </div>
+                <div class="row mb-5">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <label class="form-label">Дни недели:</label>
+                        <div class="btn-group w-100 shadow-sm" role="group">
+                            {% set days = [('0','Пн'), ('1','Вт'), ('2','Ср'), ('3','Чт'), ('4','Пт'), ('5','Сб'), ('6','Вс')] %}
+                            {% for val, label in days %}
+                            <input type="checkbox" class="btn-check" name="target_day" id="day{{ val }}" value="{{ val }}" {% if val in target_days %}checked{% endif %}>
+                            <label class="btn btn-outline-dark" for="day{{ val }}">{{ label }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Время суток:</label>
+                        <div class="btn-group w-100 shadow-sm" role="group">
+                            {% set times = [('morning','Утро'), ('day','День'), ('evening','Вечер'), ('night','Ночь')] %}
+                            {% for val, label in times %}
+                            <input type="checkbox" class="btn-check" name="target_time" id="time{{ val }}" value="{{ val }}" {% if val in target_times %}checked{% endif %}>
+                            <label class="btn btn-outline-dark" for="time{{ val }}">{{ label }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-dark w-100 btn-lg shadow-sm" id="submit-btn">
+                    <span id="btn-text">Начать анализ</span>
+                    <span id="loading-overlay"><span class="spinner-border spinner-border-sm me-2"></span>Анализ данных...</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if map_html %}
+    <div class="card mb-4">
+        <div class="card-header">Точки с геопозицией</div>
+        <div class="card-body p-0">
+            <div class="map-container">{{ map_html | safe }}</div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <div class="card h-100">
+                <div class="card-header">Дни недели</div>
+                <div class="card-body p-0">
+                    {% for day, c in habit_days.items() %}
+                    <div class="list-row">
+                        <span>{{ day }}</span>
+                        <span class="fw-bold">{{ c }} фото</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">Время суток</div>
+                <div class="card-body p-0">
+                    {% for t, c in habit_time.items() %}
+                    <div class="list-row">
+                        <span>{{ t }}</span>
+                        <span class="fw-bold">{{ c }} фото</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <div class="card h-100">
+                <div class="card-header">Страны</div>
+                <div class="stats-table-wrapper">
+                    <table class="table table-hover align-middle mb-0">
+                        <tbody>
+                            {% for country, count in stats_countries %}
+                            <tr>
+                                <td class="ps-4">{{ country }}</td>
+                                <td class="text-end pe-4 fw-bold">{{ count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">Города</div>
+                <div class="stats-table-wrapper">
+                    <table class="table table-hover align-middle mb-0">
+                        <tbody>
+                            {% for city, count in stats_cities %}
+                            <tr>
+                                <td class="ps-4">{{ city }}</td>
+                                <td class="text-end pe-4 fw-bold">{{ count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Хронология устройств</div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Модель</th>
+                        <th>Первое фото</th>
+                        <th>Последнее фото</th>
+                        <th class="pe-4">Сумма фото</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in device_stats %}
+                    <tr>
+                        <td class="ps-4 fw-bold">{{ d.name }}</td>
+                        <td>{{ d.first }}</td>
+                        <td>{{ d.last }}</td>
+                        <td class="pe-4">{{ d.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+<script>
+    document.getElementById('osint-form').onsubmit = () => {
+        document.getElementById('submit-btn').disabled = true;
+        document.getElementById('btn-text').style.display = 'none';
+        document.getElementById('loading-overlay').style.display = 'inline-block';
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
