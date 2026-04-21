@@ -1,5 +1,7 @@
+```bash
 apt update && apt upgrade -y
 apt install python3-venv python3-pip nginx -y
+```
 
 mkdir -p /root/osint/templates
 cd /root/osint/
@@ -27,3 +29,6 @@ systemctl status nginx
 автоматизация
 python3 fetch_key.py (один раз самостоятельно - потом в cron)
 crontab -e (0 0 * * * /root/osint/venv/bin/python /root/osint/fetch_key.py >> /root/osint/cron_log.log 2>&1)
+
+
+
