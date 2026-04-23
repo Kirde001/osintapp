@@ -5,6 +5,8 @@ import reverse_geocoder as rg
 import pycountry
 from flask import Flask, render_template, request, flash
 from flickr_api import FlickrOSINT
+from babel import Locale
+from deep_translator import GoogleTranslator
 
 app = Flask(__name__)
 app.secret_key = "osint_pro_api_key"
@@ -14,31 +16,64 @@ def get_statistics(location_data):
     coords = list(location_data.keys())
     results = rg.search(coords)
     country_stats, city_stats = {}, {}
-    
+    loc_ru = Locale('ru')
+    translator = GoogleTranslator(source='auto', target='ru')
+    translated_cities_cache = {}
+
     for (coord, count), geo in zip(location_data.items(), results):
         cc = geo.get('cc', 'Unknown')
         city = geo.get('name', 'Unknown City')
-        c_obj = pycountry.countries.get(alpha_2=cc)
-        c_name = c_obj.name if c_obj else cc
-        country_stats[c_name] = country_stats.get(c_name, 0) + count
-        key = f"{city} ({c_name})"
+        if cc != 'Unknown':
+            c_name_ru = loc_ru.territories.get(cc.upper())
+            if not c_name_ru: 
+                c_obj = pycountry.countries.get(alpha_2=cc)
+                c_name_ru = c_obj.name if c_obj else cc
+        else:
+            c_name_ru = 'Неизвестная страна - ошибка библиотеки Babel'
+        country_stats[c_name_ru] = country_stats.get(c_name_ru, 0) + count
+
+        if city not in translated_cities_cache:
+            if city != 'Unknown City':
+                try:
+                    query = f"{city}, {c_name_ru}"
+                    translated_full = translator.translate(query)
+                    if ',' in translated_full:
+                        city_ru = translated_full.split(',')[0].strip()
+                    else:
+                        city_ru = translated_full.replace(c_name_ru, '').strip()
+                    if city_ru.lower().startswith('город '):
+                        city_ru = city_ru[6:]
+                    translated_cities_cache[city] = city_ru.capitalize()
+                except Exception:
+                    translated_cities_cache[city] = city
+            else:
+                translated_cities_cache[city] = 'Неизвестный город - ошибка перевода'
+        city_ru = translated_cities_cache[city]
+        
+        key = f"{city_ru} ({c_name_ru})"
         city_stats[key] = city_stats.get(key, 0) + count
         
     return sorted(country_stats.items(), key=lambda x: x[1], reverse=True), \
            sorted(city_stats.items(), key=lambda x: x[1], reverse=True)[:20]
 
-def generate_map(location_data):
+def generate_map(location_data, location_ids):
     if not location_data: return None
     
     data = []
     max_count = max(location_data.values()) if location_data else 1
     
     for (lat, lon), count in location_data.items():
+        p_ids = location_ids.get((lat, lon), [])
+        ids_text = ", ".join(p_ids[:3])
+        if len(p_ids) > 3:
+            ids_text += f" (+ еще {len(p_ids) - 3})"
         data.append({
             "lat": lat, 
-            "lon": lon, 
+            "lon": lon,
+            "ID фото": ids_text,
             "Фото": count, 
-            "size": min(4 + (count * 1.0), 20)
+            "size": min(4 + (count * 1.0), 20),
+            "Действие": "Кликнуть для открытия панорамы"
         })
     df = pd.DataFrame(data)
 
@@ -48,7 +83,7 @@ def generate_map(location_data):
     custom_colors = ["#ffeb3b", "#f44336", "#000000"]
     fig = px.scatter_mapbox(
         df, lat="lat", lon="lon", size="size", color="Фото",
-        hover_data={"lat": True, "lon": True, "size": False},
+        hover_data={"lat": True, "lon": True, "size": False, "ID фото": True, "Фото": True, "Действие": True},
         center={"lat": avg_lat, "lon": avg_lon},
         zoom=3,
         color_continuous_scale=custom_colors,
@@ -85,7 +120,7 @@ def generate_map(location_data):
         coloraxis_showscale=False
     )
     
-    return fig.to_html(full_html=False, include_plotlyjs='cdn', default_height='100%', default_width='100%')
+    return fig.to_html(full_html=False, include_plotlyjs='cdn', default_height='100%', default_width='100%', div_id='osint-map')
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -100,15 +135,15 @@ def index():
             client = FlickrOSINT()
             limit = int(data["max_photos"]) if data["max_photos"].isdigit() else None
             
-            username, locs, coll, devs, d_stats, h_stats = client.get_user_heatmap_data(
+            username, locs, coll, devs, d_stats, h_stats, loc_ids = client.get_user_heatmap_data(
                 data["target_url"], limit=limit, start_date=data["start_date"], 
                 end_date=data["end_date"], target_days=data["target_days"], target_times=data["target_times"]
             )
             
             if not locs:
-                flash("Данных не найдено - стоит изменить фильтры", "warning")
+                flash("Данных не найдено - стоит изменить фильтры/ профиль приватный", "warning")
             else:
-                data["map_html"] = generate_map(locs)
+                data["map_html"] = generate_map(locs, loc_ids)
                 data["stats_countries"], data["stats_cities"] = get_statistics(locs)
                 data["device_stats"] = devs
                 d_map = {0: "Пн", 1: "Вт", 2: "Ср", 3: "Чт", 4: "Пт", 5: "Сб", 6: "Вс"}

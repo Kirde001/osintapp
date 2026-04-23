@@ -290,5 +290,25 @@
         });
     });
 </script>
+<script>
+    const mapInterval = setInterval(() => {
+        const plotDiv = document.getElementById('osint-map');
+        if (plotDiv && typeof plotDiv.on === 'function') {
+            clearInterval(mapInterval); 
+            plotDiv.on('plotly_click', function(data){
+                const lat = data.points[0].lat;
+                const lon = data.points[0].lon;
+                const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
+                window.open(streetViewUrl, '_blank');
+            });
+            plotDiv.on('plotly_hover', function(){
+                plotDiv.style.cursor = 'pointer';
+            });
+            plotDiv.on('plotly_unhover', function(){
+                plotDiv.style.cursor = 'default';
+            });
+        }
+    }, 500);
+</script>
 </body>
 </html>

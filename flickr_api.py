@@ -58,6 +58,7 @@ class FlickrOSINT:
         url = "https://www.flickr.com/services/rest/"
         
         location_counts = defaultdict(int)
+        location_ids = defaultdict(list)
         device_history = defaultdict(list)
         day_stats = defaultdict(int)
         hour_stats = defaultdict(int)
@@ -108,7 +109,9 @@ class FlickrOSINT:
 
                 lat, lon = float(p["latitude"]), float(p["longitude"])
                 if lat != 0 or lon != 0:
-                    location_counts[(round(lat, 4), round(lon, 4))] += 1
+                    loc_key = (round(lat, 4), round(lon, 4))
+                    location_counts[loc_key] += 1
+                    location_ids[loc_key].append(p["id"]) 
                     photo_ids.append((p["id"], p["datetaken"]))
                     collected += 1
                     if p_day is not None: day_stats[p_day] += 1
@@ -130,4 +133,4 @@ class FlickrOSINT:
             s = sorted(dates)
             dev_stats.append({"name": d, "first": s[0], "last": s[-1], "count": len(dates)})
 
-        return username, location_counts, collected, dev_stats, day_stats, hour_stats
+        return username, location_counts, collected, dev_stats, day_stats, hour_stats, location_ids
