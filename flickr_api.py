@@ -49,7 +49,7 @@ class FlickrOSINT:
                     if tag["tag"] == "Model": cam["model"] = tag["raw"]["_content"]
                 result = f"{cam['make']} {cam['model']}".strip()
                 return "Неизвестное устройство - нет метаданных" if result == "Unknown Unknown" else result
-        except:
+        except Exception:
             pass
         return "Unknown Device"
 
@@ -119,11 +119,12 @@ class FlickrOSINT:
                 
                 if limit and collected >= limit: break
             
-            if (limit and collected >= limit) or page >= res["photos"]["pages"]: break
+            total_pages = res.get("photos", {}).get("pages", 1)
+            if (limit and collected >= limit) or page >= total_pages: break
             page += 1
 
         with ThreadPoolExecutor(max_workers=10) as ex:
-            futures = {ex.submit(self._get_photo_exif, pid): date for pid, date in photo_ids[:100]}
+            futures = {ex.submit(self._get_photo_exif, pid): date for pid, date in photo_ids}
             for f in futures:
                 date = futures[f]
                 device_history[f.result()].append(date)

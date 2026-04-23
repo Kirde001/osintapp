@@ -6,10 +6,13 @@ import pycountry
 from flask import Flask, render_template, request, flash
 from flickr_api import FlickrOSINT
 from babel import Locale
-from deep_translator import GoogleTranslator
+from dotenv import load_dotenv
+import os
 
 app = Flask(__name__)
-app.secret_key = "osint_pro_api_key"
+
+load_dotenv()
+app.secret_key = os.getenv("FLASK_KEY", "fallback_local_secret_key")
 
 def get_statistics(location_data):
     if not location_data: return [], []
@@ -17,12 +20,10 @@ def get_statistics(location_data):
     results = rg.search(coords)
     country_stats, city_stats = {}, {}
     loc_ru = Locale('ru')
-    translator = GoogleTranslator(source='auto', target='ru')
-    translated_cities_cache = {}
 
     for (coord, count), geo in zip(location_data.items(), results):
         cc = geo.get('cc', 'Unknown')
-        city = geo.get('name', 'Unknown City')
+        city = geo.get('name', 'Unknown City')  
         if cc != 'Unknown':
             c_name_ru = loc_ru.territories.get(cc.upper())
             if not c_name_ru: 
@@ -31,30 +32,11 @@ def get_statistics(location_data):
         else:
             c_name_ru = 'Неизвестная страна - ошибка библиотеки Babel'
         country_stats[c_name_ru] = country_stats.get(c_name_ru, 0) + count
-
-        if city not in translated_cities_cache:
-            if city != 'Unknown City':
-                try:
-                    query = f"{city}, {c_name_ru}"
-                    translated_full = translator.translate(query)
-                    if ',' in translated_full:
-                        city_ru = translated_full.split(',')[0].strip()
-                    else:
-                        city_ru = translated_full.replace(c_name_ru, '').strip()
-                    if city_ru.lower().startswith('город '):
-                        city_ru = city_ru[6:]
-                    translated_cities_cache[city] = city_ru.capitalize()
-                except Exception:
-                    translated_cities_cache[city] = city
-            else:
-                translated_cities_cache[city] = 'Неизвестный город - ошибка перевода'
-        city_ru = translated_cities_cache[city]
-        
-        key = f"{city_ru} ({c_name_ru})"
+        key = f"{city} ({c_name_ru})"
         city_stats[key] = city_stats.get(key, 0) + count
         
     return sorted(country_stats.items(), key=lambda x: x[1], reverse=True), \
-           sorted(city_stats.items(), key=lambda x: x[1], reverse=True)[:20]
+           sorted(city_stats.items(), key=lambda x: x[1], reverse=True)
 
 def generate_map(location_data, location_ids):
     if not location_data: return None
