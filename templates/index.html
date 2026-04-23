@@ -91,13 +91,11 @@
 <body>
 <div class="container py-5">
     <h2 class="mb-5 text-center">Анализ цифрового следа Flickr на основе метаданных</h2>
-    
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}{% for cat, msg in messages %}
         <div class="alert alert-{{ cat }} alert-dismissible fade show shadow-sm rounded-3">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
       {% endfor %}{% endif %}
     {% endwith %}
-
     <div class="card">
         <div class="card-body p-4">
             <form method="POST" action="/" id="osint-form">
@@ -148,7 +146,6 @@
             </form>
         </div>
     </div>
-
     {% if map_html %}
     <div class="card mb-4">
         <div class="card-header">Точки с геопозицией</div>
@@ -156,7 +153,6 @@
             <div class="map-container">{{ map_html | safe }}</div>
         </div>
     </div>
-
     <div class="row mb-4">
         <div class="col-md-6 mb-3 mb-md-0">
             <div class="card h-100">
@@ -185,7 +181,6 @@
             </div>
         </div>
     </div>
-
     <div class="row mb-4">
         <div class="col-md-6 mb-3 mb-md-0">
             <div class="card h-100">
@@ -222,7 +217,6 @@
             </div>
         </div>
     </div>
-
     <div class="card">
         <div class="card-header">Хронология устройств</div>
         <div class="table-responsive">
