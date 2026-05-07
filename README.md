@@ -47,3 +47,7 @@ python3 fetch_key.py
 crontab -e 
 0 0 * * * /root/osint/venv/bin/python /root/osint/fetch_key.py >> /root/osint/cron_log.log 2>&1
 ```
+# В рамках работы переменных окружения - еще требуется задать 
+```bash
+FLASK_KEY=...
+```
