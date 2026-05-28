@@ -1,8 +1,9 @@
 import requests
 import re
 import os
+from dotenv import set_key
 def fetch_flickr_key_advanced():
-    url = "https://www.flickr.com/explore" 
+    url = "https://www.flickr.com/explore"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -25,10 +26,9 @@ def fetch_flickr_key_advanced():
                 new_key = match.group(1)
                 break
         if new_key:
-            print(f"Ключ найден: {new_key}") 
+            print(f"Ключ найден: {new_key}")
             env_path = os.path.join(os.path.dirname(__file__), '.env')
-            with open(env_path, "w") as f:
-                f.write(f"FLICKR_SITE_KEY={new_key}\n")
+            set_key(env_path, "FLICKR_SITE_KEY", new_key)
             print(f"Файл {env_path} обновлен.")
             return True
         else:
@@ -37,7 +37,7 @@ def fetch_flickr_key_advanced():
                 f.write(response.text)
             return False
     except Exception as e:
-        print(f"Критическая неудача: {e}")
+        print(f"Критический промах: {e}")
         return False
 if __name__ == "__main__":
     fetch_flickr_key_advanced()
