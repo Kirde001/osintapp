@@ -1,3 +1,9 @@
+# Временно для тестов:
+https://www.flickr.com/photos/candidmale/
+https://www.flickr.com/photos/m-shimada1975/
+https://www.flickr.com/photos/189215888@N05/
+https://www.flickr.com/photos/boules/
+
 # В коде используются публичные API-токены, которые обновляются каждый час (так что ценности для парсеров они не имеют)
 
 # Основная установка
