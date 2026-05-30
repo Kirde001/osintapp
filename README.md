@@ -1,8 +1,5 @@
 # Временно для тестов:
 ```bash
-https://www.flickr.com/photos/candidmale/
-```
-```bash
 https://www.flickr.com/photos/m-shimada1975/
 ```
 ```bash
