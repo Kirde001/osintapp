@@ -1,8 +1,14 @@
 # Временно для тестов:
 ```bash
 https://www.flickr.com/photos/candidmale/
+```
+```bash
 https://www.flickr.com/photos/m-shimada1975/
+```
+```bash
 https://www.flickr.com/photos/189215888@N05/
+```
+```bash
 https://www.flickr.com/photos/boules/
 ```
 
